@@ -16,7 +16,7 @@ web3 = Web3(Web3.HTTPProvider(ganache_url))
 
 # Load Contract
 
-contract_address = "0x9d796A005fa9C9ddB69aB12Fd74e39ea2766780E"
+contract_address = "ADDRESS HERE"
 
 with open("build/contracts/Election.json") as f:
 
