@@ -8,9 +8,9 @@ from web3 import Web3
 
 # Define your account and private key
 
-account = "0x5614a7Df424aFd01D99C1a50037830278E0c1B49"
+account = "ACCOUNT HEX HERE"
 
-private_key = "0x4e94741aef51396d0ccbb153e30793ecf64a9e045949e7a5ea4a83a02fe33e50"
+private_key = "PRIVATE KEY HERE"
 
 
 
