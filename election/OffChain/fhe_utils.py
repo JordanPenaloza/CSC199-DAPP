@@ -1,144 +1,42 @@
 import seal
+from web3 import Web3
 
-import numpy as np
+# --- Initialization and Key Retrieval ---
 
+def get_key_from_chunks(contract, key_type="publicKey"):
+    if key_type == "publicKey":
+        key_chunks = contract.functions.getPublicKeyChunks().call()
+    elif key_type == "relinKey":
+        key_chunks = []
+        index = 0
+        while True:
+            try:
+                chunk = contract.functions.getRelinKeyChunks(index).call()
+                key_chunks.extend(chunk)
+                index += 1
+            except:
+                break
 
-
-# --- Initialization and Key Setup ---
-
-
-
-def setup_fhe():
-
-    # CKKS Parameters setup
-
-    parms = seal.EncryptionParameters(seal.scheme_type.ckks)
-
-    
-
-    # Set the polynomial modulus degree and coefficient modulus
-
-    poly_modulus_degree = 8192
-
-    parms.set_poly_modulus_degree(poly_modulus_degree)
-
-    parms.set_coeff_modulus(seal.CoeffModulus.Create(poly_modulus_degree, [60, 40, 40, 60]))
-
-    
-
-    # Create SEALContext
-
-    context = seal.SEALContext(parms)
-
-    
-
-    # Key generation
-
-    keygen = seal.KeyGenerator(context)
-
-    public_key = seal.PublicKey()
-
-    keygen.create_public_key(public_key)
-
-    
-
-    secret_key = keygen.secret_key()
-
-    relin_keys = seal.RelinKeys()
-
-    keygen.create_relin_keys(relin_keys)
-
-    
-
-    # Setup encoder, encryptor, decryptor, and evaluator
-
-    encoder = seal.CKKSEncoder(context)
-
-    encryptor = seal.Encryptor(context, public_key)
-
-    evaluator = seal.Evaluator(context)
-
-    decryptor = seal.Decryptor(context, secret_key)
-
-
-
-    return context, public_key, secret_key, relin_keys, encoder, encryptor, evaluator, decryptor
-
-
+    key_bytes = b''.join([int(chunk).to_bytes(32, byteorder='big') for chunk in key_chunks])
+    return key_bytes
 
 # --- Voting Functions ---
 
-
-
-def encrypt_vote(encoder, encryptor, vote_value, scale=pow(2.0, 40)):
-
+def encrypt_vote(encoder, encryptor, vote_value, scale):
     """Encrypt a single vote"""
-
     plaintext = encoder.encode(vote_value, scale)
-
     encrypted_vote = encryptor.encrypt(plaintext)
-
     return encrypted_vote
 
-
-
-def add_encrypted_votes(evaluator, encrypted_vote1, encrypted_vote2):
-
-    """Add two encrypted votes (homomorphic addition)"""
-
-    encrypted_sum = evaluator.add(encrypted_vote1, encrypted_vote2)
-
+def tally_votes(evaluator, encrypted_votes):
+    """Homomorphically add all encrypted votes"""
+    encrypted_sum = encrypted_votes[0]
+    for ev in encrypted_votes[1:]:
+        evaluator.add_inplace(encrypted_sum, ev)
     return encrypted_sum
 
-
-
 def decrypt_result(decryptor, encoder, encrypted_result):
-
-    """Decrypt and decode the aggregated votes"""
-
+    """Decrypt the aggregated result and decode it"""
     decrypted = decryptor.decrypt(encrypted_result)
-
     result = encoder.decode(decrypted)
-
     return result[0]
-
-
-
-# --- Example Usage ---
-
-
-
-if __name__ == "__main__":
-
-    # Initialize FHE setup
-
-    context, public_key, secret_key, relin_keys, encoder, encryptor, evaluator, decryptor = setup_fhe()
-
-    
-
-    # Example: Encrypt two votes (1 for candidate A and 1 for candidate B)
-
-    vote_candidate_a = 1.0  # Representing a vote for candidate A
-
-    vote_candidate_b = 1.0  # Representing a vote for candidate B
-
-    
-
-    encrypted_vote_a = encrypt_vote(encoder, encryptor, vote_candidate_a)
-
-    encrypted_vote_b = encrypt_vote(encoder, encryptor, vote_candidate_b)
-
-    
-
-    # Perform homomorphic addition of votes
-
-    encrypted_sum = add_encrypted_votes(evaluator, encrypted_vote_a, encrypted_vote_b)
-
-    
-
-    # Decrypt and display the result
-
-    result = decrypt_result(decryptor, encoder, encrypted_sum)
-
-    print(f"Aggregated (Decrypted) Vote Count: {result:.5f}")
-
