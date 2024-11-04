@@ -42,7 +42,7 @@ relin_keys_bytes = [get_chunked_key(contract, "getRelinKeyChunks")]
 
 # Initialize SEAL context and FHE keys
 parms = seal.EncryptionParameters(seal.scheme_type.ckks)
-poly_modulus_degree = 8192  # Example modulus degree, matching your reference code
+poly_modulus_degree = 8192  
 parms.set_poly_modulus_degree(poly_modulus_degree)
 parms.set_coeff_modulus(seal.CoeffModulus.Create(poly_modulus_degree, [60, 40, 40, 60]))
 context = seal.SEALContext(parms)
